@@ -12,6 +12,7 @@ from flask import make_response
 import secrets
 from dotenv import load_dotenv
 import atexit
+import re
 load_dotenv()
 
 
@@ -234,23 +235,45 @@ def send_reset_code_email(user_email, user_name, reset_code):
 
 
 
+
+# Liste des origines autorisées avec pattern pour Vercel
+def is_allowed_origin(origin):
+    if not origin:
+        return False
+    
+    allowed_patterns = [
+        r'^https://bibliotech-frontend\.vercel\.app$',  # Production
+        r'^https://bibliotech-frontend-.*\.vercel\.app$',  # Tous les previews
+        r'^http://localhost:\d+$',  # Développement local
+    ]
+    
+    for pattern in allowed_patterns:
+        if re.match(pattern, origin):
+            return True
+    return False
+
+# Configuration CORS dynamique
 CORS(
     app,
     supports_credentials=True,
-    origins=["https://bibliotech-frontend.vercel.app"]
+    origins=is_allowed_origin,
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 )
-
 
 @app.before_request
 def handle_preflight():
     if request.method == "OPTIONS":
+        origin = request.headers.get('Origin')
         response = make_response()
-        response.headers["Access-Control-Allow-Origin"] = "https://bibliotech-frontend.vercel.app"
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        
+        if origin and is_allowed_origin(origin):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        
         return response
-
 
 
 
