@@ -217,7 +217,7 @@ VITE_API_URL=https://bibliotech-backend.onrender.com/api
 Modifiez `frontend/src/services/api.js` :
 
 ```javascript
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL}/api';
 
 export default axios.create({
   baseURL: API_URL,
@@ -229,8 +229,8 @@ export default axios.create({
 
 ```javascript
 const API_URL = import.meta.env.PROD 
-  ? 'https://bibliotech-backend.onrender.com/api'
-  : 'http://localhost:5000/api';
+  ? '${import.meta.env.VITE_API_URL}/api'
+  : 'http://${import.meta.env.VITE_API_URL}/api';
 ```
 
 ### 5.2 Déployer sur Vercel (GRATUIT)

@@ -231,18 +231,34 @@ def send_reset_code_email(user_email, user_name, reset_code):
         print(f" Erreur lors de l'envoi de l'email: {str(e)}")
         return False
 
-CORS(app, supports_credentials=True, origins=['http://localhost:5173'])
+from flask_cors import CORS
+
+CORS(app, supports_credentials=True, resources={
+    r"/api/*": {
+        "origins": [
+            "https://bibliotech-frontend.vercel.app"
+        ]
+    }
+})
+
 
 db.init_app(app)
 bcrypt.init_app(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'
+# login_manager.login_view = 'login'
 
 @login_manager.user_loader
 def load_user(user_id):
     return Utilisateur.query.get(int(user_id))
+ 
+@login_manager.unauthorized_handler
+def unauthorized():
+    return jsonify({
+        "error": "Non authentifié"
+    }), 401
+
 
 with app.app_context():
     # NE PLUS SUPPRIMER LES DONNÉES À CHAQUE DÉMARRAGE
