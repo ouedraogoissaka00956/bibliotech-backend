@@ -236,8 +236,7 @@ def send_reset_code_email(user_email, user_name, reset_code):
 CORS(app, supports_credentials=True, resources={
     r"/api/*": {
         "origins": [
-            "https://bibliotech-frontend.vercel.app",  # production
-            "http://localhost:5173"                     # développement Vite
+             "https://bibliotech-frontend-8ha8xus61-sakos-projects-43d90855.vercel.app"                     # développement Vite
         ]
     }
 })
