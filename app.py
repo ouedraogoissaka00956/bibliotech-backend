@@ -235,46 +235,51 @@ def send_reset_code_email(user_email, user_name, reset_code):
 
 
 
+# Liste des origines autorisées
+ALLOWED_ORIGINS = [
+    "https://bibliotech-frontend.vercel.app",  # Production"https://bibliotech-frontend-d7ovpjsjj-sakos-projects-43d90855.vercel.app",  # Preview Vercel
+    "https://bibliotech-frontend-d7ovpjsjj-sakos-projects-43d90855.vercel.app",  # Preview Vercel
+    "http://localhost:3000",  # Développement local
+    "http://localhost:5173",  # Développement local Vite
+]
 
-# Liste des origines autorisées avec pattern pour Vercel
-def is_allowed_origin(origin):
-    if not origin:
-        return False
-    
-    allowed_patterns = [
-        r'^https://bibliotech-frontend\.vercel\.app$',  # Production
-        r'^https://bibliotech-frontend-.*\.vercel\.app$',  # Tous les previews
-        r'^http://localhost:\d+$',  # Développement local
-    ]
-    
-    for pattern in allowed_patterns:
-        if re.match(pattern, origin):
-            return True
-    return False
-
-# Configuration CORS dynamique
+# Configuration CORS simple
 CORS(
     app,
     supports_credentials=True,
-    origins=is_allowed_origin,
+    origins=ALLOWED_ORIGINS,
     allow_headers=["Content-Type", "Authorization"],
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 )
 
+@app.after_request
+def after_request(response):
+    """Permet les previews Vercel en plus des origines fixes"""
+    origin = request.headers.get('Origin')
+    
+    # Si c'est un preview Vercel, l'autoriser aussi
+    if origin and 'bibliotech-frontend' in origin and '.vercel.app' in origin:
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+    
+    return response
+
 @app.before_request
 def handle_preflight():
+    """Gère les requêtes OPTIONS"""
     if request.method == "OPTIONS":
         origin = request.headers.get('Origin')
         response = make_response()
         
-        if origin and is_allowed_origin(origin):
+        # Autoriser les origines fixes + previews Vercel
+        if origin in ALLOWED_ORIGINS or (origin and 'bibliotech-frontend' in origin and '.vercel.app' in origin):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            response.status_code = 200
         
         return response
-
 
 
 db.init_app(app)
