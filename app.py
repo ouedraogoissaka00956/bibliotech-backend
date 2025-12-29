@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from PIL import Image
 import os
+from flask import make_response
 import secrets
 from dotenv import load_dotenv
 import atexit
@@ -233,13 +234,22 @@ def send_reset_code_email(user_email, user_name, reset_code):
 
 
 
-CORS(app, supports_credentials=True, resources={
-    r"/api/*": {
-        "origins": [
-             "https://bibliotech-frontend-8ha8xus61-sakos-projects-43d90855.vercel.app"                     # développement Vite
-        ]
-    }
-})
+CORS(
+    app,
+    supports_credentials=True,
+    origins=["https://bibliotech-frontend.vercel.app"]
+)
+
+
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = make_response()
+        response.headers["Access-Control-Allow-Origin"] = "https://bibliotech-frontend.vercel.app"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        return response
 
 
 
@@ -502,7 +512,7 @@ def send_verification_email(user_email, user_name, verification_token):
     """Envoie l'email de vérification avec un bouton de confirmation"""
     try:
         # URL de vérification (à adapter selon votre domaine)
-        verification_url = f"http://https://bibliotech-frontend.vercel.appst:5173/verify-email?token={verification_token}"
+        verification_url = f"https://bibliotech-frontend.vercel.app/verify-email?token={verification_token}"
         
         msg = Message(
             subject=" Confirmez votre inscription - BiblioTech",
@@ -755,7 +765,7 @@ def register():
             }), 201
         else:
             # Si l'envoi échoue, afficher le lien en console (développement)
-            verification_url = f"http://https://bibliotech-frontend.vercel.appst:5173/verify-email?token={verification_token}"
+            verification_url = f"https://bibliotech-frontend.vercel.app/verify-email?token={verification_token}"
             print(f"\n{'='*70}")
             print(f"  ERREUR D'ENVOI EMAIL - LIEN DE VÉRIFICATION")
             print(f"{'='*70}")
