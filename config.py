@@ -58,5 +58,5 @@ class Config:
     
     # ============ CORS ============
     # À modifier avec votre domaine frontend
-    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:5173').split(',')
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://bibliotech-frontend.vercel.app/').split(',')
     CORS_SUPPORTS_CREDENTIALS = True
