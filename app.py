@@ -235,14 +235,15 @@ def send_reset_code_email(user_email, user_name, reset_code):
 
 
 
-# Liste des origines autorisées
+# Liste des origines fixes autorisées
 ALLOWED_ORIGINS = [
     "https://bibliotech-frontend.vercel.app",  # Production
-    "http://localhost:3000",  # Développement local
-    "http://localhost:5173",  # Développement local Vite
+    "https://bibliotech-frontend-fbklm0g57-sakos-projects-43d90855.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:5173",
 ]
 
-# Configuration CORS
+# Configuration CORS de base
 CORS(
     app,
     supports_credentials=True,
@@ -253,27 +254,35 @@ CORS(
 
 @app.after_request
 def after_request(response):
-    """Permet tous les previews Vercel en plus des origines fixes"""
+    """Autorise dynamiquement tous les previews Vercel"""
     origin = request.headers.get('Origin')
     
-    # Autoriser tous les sous-domaines Vercel
-    if origin and ('bibliotech-frontend' in origin and '.vercel.app' in origin):
-        response.headers['Access-Control-Allow-Origin'] = origin
-        response.headers['Access-Control-Allow-Credentials'] = 'true'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    # Vérifier si c'est une origine autorisée
+    if origin:
+        # Autoriser les origines fixes OU tous les sous-domaines Vercel
+        if (origin in ALLOWED_ORIGINS or 
+            ('bibliotech-frontend' in origin and '.vercel.app' in origin) or
+            'localhost' in origin):
+            
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
     
     return response
 
 @app.before_request
 def handle_preflight():
-    """Gère les requêtes OPTIONS"""
+    """Gère les requêtes OPTIONS (preflight CORS)"""
     if request.method == "OPTIONS":
         origin = request.headers.get('Origin')
-        response = make_response()
         
-        # Autoriser les origines fixes + tous les previews Vercel
-        if origin in ALLOWED_ORIGINS or (origin and 'bibliotech-frontend' in origin and '.vercel.app' in origin):
+        # Autoriser si origine valide
+        if origin and (origin in ALLOWED_ORIGINS or 
+                      ('bibliotech-frontend' in origin and '.vercel.app' in origin) or
+                      'localhost' in origin):
+            
+            response = make_response()
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
@@ -281,12 +290,21 @@ def handle_preflight():
             response.status_code = 200
             return response
 
+# ==================== FIN CONFIGURATION CORS ====================
+
+# Initialisation DB et Login Manager
 db.init_app(app)
 bcrypt.init_app(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-# login_manager.login_view = 'login'
+
+# Configuration des cookies pour fonctionner entre domaines
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'None'
+app.config['REMEMBER_COOKIE_SECURE'] = True
 
 @login_manager.user_loader
 def load_user(user_id):
